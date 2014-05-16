@@ -58,7 +58,7 @@ struct CompletionData {
   // "int foo(int x)", this is just "foo". Same for a data member like "foo_":
   // we insert just "foo_".
   std::string TextToInsertInBuffer() {
-    return original_string_;
+    return call_string_;
   }
 
   // Currently, here we show the full function signature (without the return
@@ -88,30 +88,48 @@ struct CompletionData {
     return doc_string_;
   }
 
+  std::string Brief() const {
+    return brief_;
+  }
+
   bool operator== ( const CompletionData &other ) const {
     return
       kind_ == other.kind_ &&
       everything_except_return_type_ == other.everything_except_return_type_ &&
-      return_type_ == other.return_type_ &&
-      original_string_ == other.original_string_;
+      return_type_ == other.return_type_;
     // detailed_info_ doesn't matter
   }
+
+  void AppendExtraSpaceIfNeeded() {
+    call_string_.append( extra_space_ );
+    everything_except_return_type_.append( extra_space_ );
+  }
+
+  static void EnableExtraSpace() {
+    extra_space_ = " ";
+  }
+
+  static void DisableExtraSpace() {
+    extra_space_ = "";
+  }
+
+  CompletionKind kind_;
+
+  std::string everything_except_return_type_;
+
+  std::string doc_string_;
+
+  std::string call_string_;
+
+  std::string key_string_;
+
+  std::string brief_;
 
   std::string detailed_info_;
 
   std::string return_type_;
 
-  CompletionKind kind_;
-
-  // The original, raw completion string. For a function like "int foo(int x)",
-  // the original string is "foo". For a member data variable like "foo_", this
-  // is just "foo_". This corresponds to clang's TypedText chunk of the
-  // completion string.
-  std::string original_string_;
-
-  std::string everything_except_return_type_;
-
-  std::string doc_string_;
+  static std::string extra_space_;
 
 private:
 

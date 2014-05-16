@@ -1,3 +1,14 @@
+##NOTICE
+
+This is a fork with preliminarily support for parameter completion for C-family
+languages with semantic completion enabled. This originated in YCM issue
+[#234](https://github.com/Valloric/YouCompleteMe/issues/234).
+
+See [oblitum's YouCompleteMe VIM plugin fork](https://github.com/oblitum/YouCompleteMe)
+for usage.
+
+---
+
 ycmd: a code-completion & comprehension server
 ==============================================
 

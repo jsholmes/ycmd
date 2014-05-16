@@ -175,7 +175,7 @@ std::vector< CompletionData > ToCompletionDataVector(
 
     CompletionData data( completion_result );
     uint index = GetValueElseInsert( seen_data,
-                                     data.original_string_,
+                                     data.key_string_,
                                      completions.size() );
 
     if ( index == completions.size() ) {
@@ -186,6 +186,13 @@ std::vector< CompletionData > ToCompletionDataVector(
       // If we have already seen this completion, then this is an overload of a
       // function we have seen. We add the signature of the overload to the
       // detailed information.
+
+      if(!completions[ index ].brief_.empty()) {
+        completions[ index ]
+          .detailed_info_.append( completions[ index ].brief_ )
+          .append( "\n" );
+      }
+
       completions[ index ].detailed_info_
       .append( data.return_type_ )
       .append( " " )

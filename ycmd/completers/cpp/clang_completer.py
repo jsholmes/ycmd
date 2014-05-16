@@ -45,6 +45,12 @@ class ClangCompleter( Completer ):
     super( ClangCompleter, self ).__init__( user_options )
     self._max_diagnostics_to_display = user_options[
       'max_diagnostics_to_display' ]
+
+    if user_options[ 'extra_spacing' ]:
+      ycm_core.EnableExtraSpace()
+    else:
+      ycm_core.DisableExtraSpace()
+
     self._completer = ycm_core.ClangCompleter()
     self._flags = Flags()
     self._diagnostic_store = None
@@ -209,7 +215,12 @@ class ClangCompleter( Completer ):
         self.GetUnsavedFilesVector( request_data ),
         flags )
 
-    diagnostics = _FilterDiagnostics( diagnostics )
+    if _IsCompletingParams( diagnostics, contents ):
+      # chill out while filling parameters
+      diagnostics = []
+    else:
+      diagnostics = _FilterDiagnostics( diagnostics )
+
     self._diagnostic_store = DiagnosticsToDiagStructure( diagnostics )
     return [ responses.BuildDiagnosticData( x ) for x in
              diagnostics[ : self._max_diagnostics_to_display ] ]
@@ -312,4 +323,9 @@ def _ResponseForLocation( location ):
                                       location.line_number_,
                                       location.column_number_ )
 
-
+def _IsCompletingParams( diagnostics, contents ):
+  noise = [ "non-ASCII characters are not allowed outside of literals and identifiers" ]
+  for x in diagnostics:
+    if x.text_ in noise:
+      return True
+  return False

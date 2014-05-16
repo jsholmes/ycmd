@@ -20,6 +20,7 @@
 
 #include <boost/algorithm/string/erase.hpp>
 #include <boost/move/move.hpp>
+#include <boost/regex.hpp>
 
 namespace YouCompleteMe {
 
@@ -96,12 +97,26 @@ bool IsMainCompletionTextInfo( CXCompletionChunkKind kind ) {
 
 
 std::string ChunkToString( CXCompletionString completion_string,
-                           uint chunk_num ) {
+                           uint chunk_num,
+                           std::string opening_placeholder_delimiter = "⟪",
+                           std::string closing_placeholder_delimiter = "⟫" ) {
   if ( !completion_string )
     return std::string();
 
-  return YouCompleteMe::CXStringToString(
-           clang_getCompletionChunkText( completion_string, chunk_num ) );
+  CXCompletionChunkKind kind = clang_getCompletionChunkKind(
+                                 completion_string, chunk_num );
+
+  std::string completion_text = YouCompleteMe::CXStringToString(
+                                  clang_getCompletionChunkText(
+                                    completion_string,
+                                    chunk_num ) );
+
+  if ( kind == CXCompletionChunk_Placeholder )
+    return opening_placeholder_delimiter +
+           completion_text +
+           closing_placeholder_delimiter;
+
+  return completion_text;
 }
 
 
@@ -131,7 +146,8 @@ std::string OptionalChunkToString( CXCompletionString completion_string,
     }
 
     else {
-      final_string.append( ChunkToString( optional_completion_string, j ) );
+      final_string.append( ChunkToString( optional_completion_string,
+                                          j, "⟦", "⟧" ) );
     }
   }
 
@@ -148,6 +164,18 @@ std::string RemoveTwoConsecutiveUnderscores( std::string text ) {
   boost::erase_all( text, "__" );
   return text;
 }
+
+
+std::string RemoveParameterMarkers( std::string text ) {
+  boost::erase_all( text, "⟪" );
+  boost::erase_all( text, "⟫" );
+  boost::erase_all( text, "⟦" );
+  boost::erase_all( text, "⟧" );
+  return text;
+}
+
+
+boost::regex cv_re("\\s*\\<(?:const|volatile)\\>\\s*");
 
 } // unnamed namespace
 
@@ -177,9 +205,26 @@ CompletionData::CompletionData( const CXCompletionResult &completion_result ) {
   // show them as just "pos". This will never interfere with client code since
   // ANY C++ identifier with two consecutive underscores in it is
   // compiler-reserved.
-  everything_except_return_type_ =
-    RemoveTwoConsecutiveUnderscores(
-      boost::move( everything_except_return_type_ ) );
+  everything_except_return_type_ = RemoveTwoConsecutiveUnderscores(
+                                     boost::move(
+                                       everything_except_return_type_ ) );
+
+  everything_except_return_type_ = RemoveParameterMarkers(
+                                     boost::move(
+                                       everything_except_return_type_ ) );
+
+  call_string_ = RemoveTwoConsecutiveUnderscores( boost::move( call_string_ ) );
+
+  key_string_ = boost::regex_replace( RemoveParameterMarkers( call_string_ ),
+                                      cv_re, "" );
+
+  brief_ = YouCompleteMe::CXStringToString(
+             clang_getCompletionBriefComment( completion_string ) );
+
+  if( !brief_.empty() ) {
+    detailed_info_.append( brief_ )
+    .append( "\n" );
+  }
 
   detailed_info_.append( return_type_ )
   .append( " " )
@@ -208,29 +253,37 @@ void CompletionData::ExtractDataFromChunk( CXCompletionString completion_string,
               kind != CXCompletionChunk_RightParen &&
               kind != CXCompletionChunk_Informative ) {
       saw_function_params = true;
-      everything_except_return_type_.append( " " );
+      AppendExtraSpaceIfNeeded();
     }
 
     else if ( saw_function_params && kind == CXCompletionChunk_RightParen ) {
-      everything_except_return_type_.append( " " );
+      AppendExtraSpaceIfNeeded();
     }
 
+    std::string chunk;
+
     if ( kind == CXCompletionChunk_Optional ) {
-      everything_except_return_type_.append(
-        OptionalChunkToString( completion_string, chunk_num ) );
+      chunk = OptionalChunkToString( completion_string, chunk_num );
+      call_string_.append( chunk );
+      everything_except_return_type_.append( boost::move(chunk) );
     }
 
     else {
-      everything_except_return_type_.append(
-        ChunkToString( completion_string, chunk_num ) );
+      chunk = ChunkToString( completion_string, chunk_num );
+
+      if ( kind != CXCompletionChunk_Informative ) {
+        call_string_.append( chunk );
+      }
+
+      everything_except_return_type_.append( boost::move( chunk ) );
     }
   }
 
   if ( kind == CXCompletionChunk_ResultType )
     return_type_ = ChunkToString( completion_string, chunk_num );
-
-  if ( kind == CXCompletionChunk_TypedText )
-    original_string_ = ChunkToString( completion_string, chunk_num );
 }
+
+
+std::string CompletionData::extra_space_ = "";
 
 } // namespace YouCompleteMe

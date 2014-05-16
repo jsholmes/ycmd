@@ -121,6 +121,8 @@ BOOST_PYTHON_MODULE(ycm_core)
           &CompletionData::DetailedInfoForPreviewWindow )
     .def( "DocString", &CompletionData::DocString )
     .def_readonly( "kind_", &CompletionData::kind_ );
+  def( "EnableExtraSpace", &CompletionData::EnableExtraSpace );
+  def( "DisableExtraSpace", &CompletionData::DisableExtraSpace );
 
   class_< std::vector< CompletionData >,
       boost::shared_ptr< std::vector< CompletionData > > >( "CompletionVector" )
