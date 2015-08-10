@@ -89,9 +89,10 @@ provided previously and any tags files produced by ctags. This engine is
 non-semantic.
 
 There are also several semantic engines in YCM. There's a libclang-based
-completer that provides semantic completion for C-family languages.  There's a
-Jedi-based completer for semantic completion for Python and an OmniSharp-based
-completer for C#. More will be added with time.
+completer that provides semantic completion for C-family languages.  There's also a
+Jedi-based completer for semantic completion for Python, an OmniSharp-based
+completer for C#, a [Gocode][gocode]-based completer for Go, and a TSServer-based
+completer for TypeScript. More will be added with time.
 
 There are also other completion engines, like the filepath completer (part of
 the identifier completer).
@@ -241,6 +242,7 @@ License
 This software is licensed under the [GPL v3 license][gpl].  
 © 2015 Francisco Lopes.  
 © 2014 Google Inc.
+© 2015 ycmd contributors
 
 [ycmd]: https://github.com/Valloric/ycmd/
 [ycm]: http://valloric.github.io/YouCompleteMe/
